@@ -55,6 +55,16 @@ dsh-task-lisk/
 
 帮助是看板内部的第二浮层（绝对定位覆盖看板本体，不新开席位），避免被窄容器裁切；看板关闭时帮助不可达。
 
+## 每日首访提示（批 3 · P2）
+
+每天**第一次打开浮动看板**时（本地日历日口径，`YYYY-MM-DD`），若还有未完成任务，看板顶部（工具栏之上）出现一条可关闭的横幅：文案含未完成数（`今天还有 N 个未完成任务`），有逾期时追加 `，其中 M 个已逾期`。
+
+- 展示即记：横幅出现时就写盘，用户看没看都算当天已提示，同一天不反复打扰；点「知道了」只隐藏当前横幅，不再写盘。
+- 当天打开时未完成任务为 0：不显示横幅、也不写盘（当天后来新建了任务，再打开仍会正常提示）。
+- 跨天自动重置（本地日期判定）；「暂停/硬停」策略不影响本提示。
+- 持久化键 `dsh.task-lisk.nudge.v1`（值形如 `{"date":"2026-11-01"}`，全局一份）；读写全 `try/catch`，localStorage 不可用时视为从未提示且不影响看板。
+- 不发 RPC、不写任务数据、不发系统通知、不自动打开看板、无定时器。
+
 ## 宿主 API 依赖（均为运行时既有）
 
 - `ctx.storageDomain.open(defineDomain(...))` —— 领域名 `task_lisk`（**领域/表名不允许连字符**），表 `tasks`，global 存策略 + `configDefaultApplied`
@@ -71,13 +81,15 @@ dsh-task-lisk/
 响应 `{type:'server-response', rpcId, result:{ok:true,value}|{ok:false,error:{code,message,details}}}`。
 `release` 可带 `text`（人类放行时的补充说明），会作为 notice 并入该步 `messages`。
 
+`task_lisk` 工具的 `list` / `create` / `update` / `complete` / `remove` 输出里每条任务都带 `sessionId`（无会话为空串 `""`，不是 `null` / 缺字段）；`list` 的 `summary` 行尾对非空会话追加 `sid=<前 8 位>`，便于核对任务归属哪个会话。
+
 ## 验证（工作区级脚本，不进包）
 
 ```powershell
 cd "<本目录上一级>"
 $node = "C:\Users\A005490\AppData\Roaming\dsh-desktop\harness\.desktop-bin\node.cmd"
-& $node --import ./smoke-loader.mjs smoke-task-lisk.mjs        # 36 项：加载/注册形状/口径/纯逻辑（含 F2/F3）/SSR
-& $node --import ./smoke-loader.mjs smoke-host-runtime.mjs     # 70 项：伪 ctx 真跑 apply()（工具/RPC/折叠/卡门）
+& $node --import ./smoke-loader.mjs smoke-task-lisk.mjs        # 40 项：加载/注册形状/口径/纯逻辑（含 F2/F3/P2）/SSR
+& $node --import ./smoke-loader.mjs smoke-host-runtime.mjs     # 74 项：伪 ctx 真跑 apply()（工具/RPC/折叠/卡门，含 sessionId 输出断言）
 ```
 
 `smoke-loader.mjs` 把裸包解析锚点指到 `<resources>/app.asar/node_modules/`：官方

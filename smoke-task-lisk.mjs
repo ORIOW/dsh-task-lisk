@@ -11,6 +11,7 @@
  */
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import fs from "node:fs";
 
 const root = path.resolve("dsh-task-lisk");
 const rows = [];
@@ -282,6 +283,41 @@ check("F3 帮助内容 6 节", () => {
 	const all = sections.map((s) => `${s.title} ${s.body}`).join("\n");
 	for (const needle of ["task_lisk", "放行", "480px", "子任务", "优先级", "拖动"]) if (!all.includes(needle)) throw new Error(`缺 ${needle}`);
 	return `6 节齐全（${sections.map((s) => s.title.slice(0, 2)).join("")}…）`;
+});
+
+// ---- 批 3 · P2 每日首访未完成提示 ----
+check("P2 todayKey 本地日期（跨 UTC 零点不漂）", () => {
+	const g = client.__internals;
+	if (g.todayKey(new Date(2026, 0, 5, 23, 30)) !== "2026-01-05") throw new Error(`23:30 → ${g.todayKey(new Date(2026, 0, 5, 23, 30))}`);
+	if (g.todayKey(new Date(2026, 0, 5, 0, 30)) !== "2026-01-05") throw new Error(`00:30 → ${g.todayKey(new Date(2026, 0, 5, 0, 30))}`);
+	return "2026-01-05 当天 23:30 与 00:30 均为 2026-01-05";
+});
+check("P2 nudgeNeed 四态", () => {
+	const g = client.__internals;
+	if (g.nudgeNeed({ date: "2026-11-01" }, "2026-11-01", 3) !== false) throw new Error("当天已提示应 false");
+	if (g.nudgeNeed({ date: "2026-10-31" }, "2026-11-01", 3) !== true) throw new Error("隔天应 true");
+	if (g.nudgeNeed(null, "2026-11-01", 3) !== true) throw new Error("无记录应 true");
+	if (g.nudgeNeed({ date: "2026-10-31" }, "2026-11-01", 0) !== false) throw new Error("零未完成应 false");
+	return "同日 false / 隔日 true / 无记录 true / 零未完成 false";
+});
+check("P2 nudgeText 文案", () => {
+	const g = client.__internals;
+	const plain = g.nudgeText(3, 0);
+	const due = g.nudgeText(3, 1);
+	if (!plain.includes("3") || plain.includes("逾期")) throw new Error(`plain=${plain}`);
+	if (!due.includes("1 个已逾期")) throw new Error(`due=${due}`);
+	return `${plain} | ${due}`;
+});
+check("P2 键名与 todayKey 源码静态断言", () => {
+	const g = client.__internals;
+	if (g.NUDGE_STORAGE_KEY !== "dsh.task-lisk.nudge.v1") throw new Error(`key=${g.NUDGE_STORAGE_KEY}`);
+	const src = fs.readFileSync(path.join(root, "lib/client.js"), "utf8");
+	if (!src.includes("dsh.task-lisk.nudge.v1")) throw new Error("client.js 缺键名");
+	const start = src.indexOf("function todayKey");
+	const end = src.indexOf("function nudgeNeed");
+	if (start < 0 || end <= start) throw new Error("todayKey 切片失败");
+	if (src.slice(start, end).includes("toISOString")) throw new Error("todayKey 内不得出现 toISOString");
+	return "键名正确；todayKey 为本地日期拼接，切片内无 toISOString";
 });
 
 // ---- SSR 首屏（无 DOM，仅证明组件树在无数据态可渲染）

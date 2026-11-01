@@ -787,6 +787,10 @@ export function apply(ctx, config = {}) {
 									repeat: {
 										type: "string",
 										required: true
+									},
+									sessionId: {
+										type: "string",
+										required: true
 									}
 								}
 							}
@@ -813,14 +817,15 @@ export function apply(ctx, config = {}) {
 					priority: t.priority,
 					parentId: t.parentId ?? "",
 					dueAt: t.dueAt === null ? "" : new Date(t.dueAt).toISOString(),
-					repeat: t.repeat
+					repeat: t.repeat,
+					sessionId: t.sessionId ?? ""
 				}));
 				if (args.action === "list") {
 					const includeDone = args.includeDone !== false;
 					const records = sorted(all()).filter((t) => includeDone || t.status !== "done");
 					const open = records.filter((t) => t.status !== "done").length;
 					return {
-						summary: `任务看板共 ${records.length} 条（未完成 ${open} 条）：\n${records.map((t) => `- [${t.status}] ${t.parentId === null ? "" : "└ "}${t.title} (${t.id}) ${t.priority}${t.dueAt === null ? "" : ` due=${new Date(t.dueAt).toISOString().slice(0, 10)}`}${t.repeat === "none" ? "" : ` repeat=${t.repeat}`}`).join("\n") || "（空）"}`,
+						summary: `任务看板共 ${records.length} 条（未完成 ${open} 条）：\n${records.map((t) => `- [${t.status}] ${t.parentId === null ? "" : "└ "}${t.title} (${t.id}) ${t.priority}${t.dueAt === null ? "" : ` due=${new Date(t.dueAt).toISOString().slice(0, 10)}`}${t.repeat === "none" ? "" : ` repeat=${t.repeat}`}${typeof t.sessionId === "string" && t.sessionId !== "" ? ` sid=${t.sessionId.slice(0, 8)}` : ""}`).join("\n") || "（空）"}`,
 						tasks: render(records)
 					};
 				}

@@ -243,6 +243,8 @@ window.__ModuleLoader__.load({
 		const GROUP_BREAKPOINT = 480;
 		/** 组折叠持久化 key：值形如 { [sessionId]: true }，全局一份（与 float.v1 同口径）。 */
 		const COLLAPSED_STORAGE_KEY = "dsh.task-lisk.float.collapsed.v1";
+		/** 每日首访提示持久化 key：值形如 { date: "YYYY-MM-DD" }，全局一份（批 3 P2）。 */
+		const NUDGE_STORAGE_KEY = "dsh.task-lisk.nudge.v1";
 		const GROUP_MODES = ["auto", "flat", "grouped"];
 		const GROUP_MODE_LABEL = {
 			auto: "自动",
@@ -333,6 +335,51 @@ window.__ModuleLoader__.load({
 				};
 			}, []);
 			return map;
+		}
+
+		// ==== 批 3 · P2：每日首访未完成任务提示（横幅，无定时器/无 RPC） ====
+
+		/**
+		 * 本地日历日 key（YYYY-MM-DD）：用本地时区的年月日拼接；
+		 * 禁用 toISOString——它按 UTC 取日期，深夜会被拨到前一天/后一天。
+		 */
+		function todayKey(now = new Date()) {
+			const month = String(now.getMonth() + 1).padStart(2, "0");
+			const day = String(now.getDate()).padStart(2, "0");
+			return `${now.getFullYear()}-${month}-${day}`;
+		}
+		/** 是否需要每日提示：当天还没提示过 且 有未完成任务。 */
+		function nudgeNeed(saved, today, pendingCount) {
+			return saved?.date !== today && pendingCount > 0;
+		}
+		/** 横幅文案：基础句 + 逾期追加句。 */
+		function nudgeText(pendingCount, overdueCount) {
+			const base = `今天还有 ${pendingCount} 个未完成任务`;
+			return overdueCount > 0 ? `${base}，其中 ${overdueCount} 个已逾期` : base;
+		}
+		/** 读每日提示记录：无记录/损坏/无 localStorage（SSR、测试）时返回 null。 */
+		function loadNudge() {
+			try {
+				if (typeof localStorage === "undefined") return null;
+				const raw = localStorage.getItem(NUDGE_STORAGE_KEY);
+				if (typeof raw !== "string" || raw === "") return null;
+				const parsed = JSON.parse(raw);
+				if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+				return typeof parsed.date === "string" ? parsed : null;
+			} catch {
+				return null;
+			}
+		}
+		/** 展示即记：写当天日期；隐私模式写失败视为从未提示（次日照常提示），不影响渲染。 */
+		function markNudge(today) {
+			try {
+				if (typeof localStorage === "undefined") return;
+				localStorage.setItem(NUDGE_STORAGE_KEY, JSON.stringify({
+					date: today
+				}));
+			} catch {
+				// 写盘失败不影响本次使用。
+			}
 		}
 		/**
 		 * 当前会话标识（§3.3 来源 A：客户端 sessions 服务）。
@@ -558,6 +605,8 @@ window.__ModuleLoader__.load({
 			const geom = useFloatGeom();
 			const session = useSessionInfo();
 			const collapsed = useCollapsedMap();
+			const [nudge, setNudge] = useState(null);
+			const nudgeChecked = useRef(false);
 			const [tasks, setTasks] = useState([]);
 			const [policy, setPolicy] = useState({
 				default: "off",
@@ -632,6 +681,21 @@ window.__ModuleLoader__.load({
 					clearInterval(timer);
 				};
 			}, [refresh]);
+			/** 每日首访提示（批 3 P2）：首次 loaded 后判定一次；展示即记，跨天重置；不发 RPC、无定时器。 */
+			useEffect(() => {
+				if (!loaded || nudgeChecked.current) return;
+				nudgeChecked.current = true;
+				const pendingCount = countPending(tasks);
+				const overdueCount = tasks.filter((t) => t.status !== "done" && t.dueAt !== null && isFinite(Number(t.dueAt)) && Number(t.dueAt) < Date.now()).length;
+				const today = todayKey();
+				if (nudgeNeed(loadNudge(), today, pendingCount)) {
+					markNudge(today);
+					setNudge({
+						pending: pendingCount,
+						overdue: overdueCount
+					});
+				}
+			}, [loaded, tasks]);
 
 			const counts = useMemo(() => ({
 				total: tasks.length,
@@ -845,6 +909,38 @@ window.__ModuleLoader__.load({
 			}, h("div", {
 				style: S.inner
 			}, [
+				nudge === null ? null : h("div", {
+					key: "nudge",
+					role: "status",
+					"aria-live": "polite",
+					style: {
+						display: "flex",
+						alignItems: "center",
+						gap: "8px",
+						padding: "7px 10px",
+						marginBottom: "10px",
+						border: "1px solid var(--dsw-alias-border-l1)",
+						borderLeft: "3px solid var(--dsw-alias-brand-primary)",
+						borderRadius: "8px",
+						background: "var(--dsw-alias-bg-layer-1)"
+					}
+				}, [
+					h("span", {
+						key: "t",
+						style: {
+							flex: "1 1 auto",
+							minWidth: 0
+						}
+					}, nudgeText(nudge.pending, nudge.overdue)),
+					h("button", {
+						key: "ok",
+						type: "button",
+						title: "知道了",
+						"aria-label": "关闭每日提示",
+						style: S.btn,
+						onClick: () => setNudge(null)
+					}, "知道了")
+				]),
 				h("div", {
 					key: "head",
 					style: S.head
@@ -1627,7 +1723,11 @@ window.__ModuleLoader__.load({
 			resolveSessionIdentity,
 			payloadWithSession,
 			HELP_SECTIONS,
-			HelpPanel
+			HelpPanel,
+			NUDGE_STORAGE_KEY,
+			todayKey,
+			nudgeNeed,
+			nudgeText
 		};
 		/** 插件名即配置项 id。 */
 		const name = "task-lisk";

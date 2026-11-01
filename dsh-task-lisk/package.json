@@ -1,6 +1,6 @@
 {
   "name": "dsh-task-lisk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "「DSH·任务看板」：跨工作区、跨会话的任务列表。侧边栏面板 + 主面板看板，用户与 agent 双向读写，支持子任务/优先级/截止时间/周期重复，以及条件化的暂停与硬停。",
   "keywords": [
     "deepseek-harness",

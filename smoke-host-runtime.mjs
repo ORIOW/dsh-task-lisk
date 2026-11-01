@@ -391,6 +391,16 @@ check("complete 带 status=todo 是取消完成", cancelled.tasks[0].status === 
 const removed = await runTool(harness, "s1", "s1", { action: "remove", id: rootId });
 check("remove 级联删除子孙", removed.tasks.length === 0 && harness.domain.table("tasks").size === 1, `size=${harness.domain.table("tasks").size}`);
 
+// ---- B2. 工具输出带 sessionId（schema / render / list summary）
+const owned = await runTool(harness, "s1", "s1", { action: "create", title: "归属断言" });
+check("create 输出 tasks[0].sessionId === 会话 id", owned.tasks[0].sessionId === "s1", JSON.stringify(owned.tasks[0].sessionId));
+check("create 输出 sessionId 是字符串", typeof owned.tasks[0].sessionId === "string", typeof owned.tasks[0].sessionId);
+const noSidTask = await runTool(harness, "", "", { action: "create", title: "无会话任务" });
+const sidListed = await runTool(harness, "s1", "s1", { action: "list" });
+const orphanRow = sidListed.tasks.find((task) => task.id === noSidTask.tasks[0].id);
+check("list 输出里 null sessionId 归一成空串", harness.domain.table("tasks").get(noSidTask.tasks[0].id).sessionId === null && orphanRow !== undefined && orphanRow.sessionId === "", JSON.stringify(orphanRow?.sessionId));
+check("list summary 出现 sid= 片段", sidListed.summary.includes("sid=") && sidListed.summary.split("\n").some((line) => line.includes(` sid=${owned.tasks[0].sessionId.slice(0, 8)}`)), sidListed.summary.split("\n").find((line) => line.includes("归属断言")) ?? "");
+
 // ---- C. RPC 信封
 const rpcList = await rpc(harness, "list", {});
 check("RPC list 信封", rpcList.status === 200 && rpcList.parsed?.type === "server-response" && rpcList.parsed?.result?.ok === true, `${rpcList.status} ${rpcList.raw.slice(0, 80)}`);
