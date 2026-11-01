@@ -1,0 +1,23 @@
+# DSH 内部运行时状态
+.zwork/
+.agents/
+.handoff/
+
+# 取证 / 探针工作区
+research/
+tmp/
+*.log
+
+# 依赖与构建产物
+node_modules/
+.pnpm-store/
+*.asar
+*.asar.unpacked/
+package-lock.json
+pnpm-lock.yaml
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,50 @@
+{
+  "name": "dsh-task-lisk",
+  "version": "0.1.0",
+  "description": "「DSH·任务看板」：跨工作区、跨会话的任务列表。侧边栏面板 + 主面板看板，用户与 agent 双向读写，支持子任务/优先级/截止时间/周期重复，以及条件化的暂停与硬停。",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "task",
+    "todo",
+    "board",
+    "task-manager"
+  ],
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh": "^0.2.0-rc.2",
+    "react": "^18.2.0"
+  },
+  "license": "MIT"
+}
