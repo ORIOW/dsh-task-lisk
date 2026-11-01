@@ -3,7 +3,7 @@
 > 跨工作区、跨会话的任务看板插件，为 [DeepSeek Harness](https://github.com/deepseek-ai) Desktop（Web profile）编写。
 > 侧栏底部按钮开关一块可拖拽的浮动看板，用户与 agent 读写同一份任务数据。
 
-- 当前版本：`0.1.1`
+- 当前版本：`0.1.2`
 - 许可证：MIT（见 [LICENSE](LICENSE)）
 - 宿主要求：DSH Desktop `>= 0.2.0-rc.2`，peer 依赖 `@deepseek-ai/cordis ~4.0.4`、`react ^18.2.0`（由宿主提供，不随包安装）
 

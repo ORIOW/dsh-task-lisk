@@ -89,7 +89,7 @@ dsh-task-lisk/
 cd "<本目录上一级>"
 $node = "C:\Users\A005490\AppData\Roaming\dsh-desktop\harness\.desktop-bin\node.cmd"
 & $node --import ./smoke-loader.mjs smoke-task-lisk.mjs        # 40 项：加载/注册形状/口径/纯逻辑（含 F2/F3/P2）/SSR
-& $node --import ./smoke-loader.mjs smoke-host-runtime.mjs     # 74 项：伪 ctx 真跑 apply()（工具/RPC/折叠/卡门，含 sessionId 输出断言）
+& $node --import ./smoke-loader.mjs smoke-host-runtime.mjs     # 76 项：伪 ctx 真跑 apply()（工具/RPC/折叠/卡门，含 sessionId 输出断言）
 ```
 
 `smoke-loader.mjs` 把裸包解析锚点指到 `<resources>/app.asar/node_modules/`：官方

@@ -400,6 +400,12 @@ const sidListed = await runTool(harness, "s1", "s1", { action: "list" });
 const orphanRow = sidListed.tasks.find((task) => task.id === noSidTask.tasks[0].id);
 check("list 输出里 null sessionId 归一成空串", harness.domain.table("tasks").get(noSidTask.tasks[0].id).sessionId === null && orphanRow !== undefined && orphanRow.sessionId === "", JSON.stringify(orphanRow?.sessionId));
 check("list summary 出现 sid= 片段", sidListed.summary.includes("sid=") && sidListed.summary.split("\n").some((line) => line.includes(` sid=${owned.tasks[0].sessionId.slice(0, 8)}`)), sidListed.summary.split("\n").find((line) => line.includes("归属断言")) ?? "");
+// 真实会话 id 形如 session-<uuid>，sid= 必须先剥前缀再取 8 位，否则全部退化成 "session-"
+const uuidSession = "session-903aabf2-5691-498d-a3d8-f15c5e08269a";
+await runTool(harness, uuidSession, uuidSession, { action: "create", title: "前缀剥离断言" });
+const uuidListed = await runTool(harness, uuidSession, uuidSession, { action: "list" });
+check("list summary 的 sid= 剥掉 session- 前缀后取 8 位", uuidListed.summary.split("\n").some((line) => line.includes(" sid=903aabf2")), uuidListed.summary.split("\n").find((line) => line.includes("前缀剥离断言")) ?? "");
+check("list summary 不出现退化片段 sid=session-", !uuidListed.summary.includes("sid=session-"), "不应出现 sid=session-");
 
 // ---- C. RPC 信封
 const rpcList = await rpc(harness, "list", {});
